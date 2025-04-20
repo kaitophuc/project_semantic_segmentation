@@ -1,6 +1,7 @@
 from yolact_edge.backbone import ResNetBackbone, VGGBackbone, ResNetBackboneGN, DarkNetBackbone, MobileNetV2Backbone
 from math import sqrt
 import torch
+import os
 
 # for making bounding boxes pretty
 COLORS = ((244,  67,  54),
@@ -184,15 +185,21 @@ dataset_base = Config({
     # Joint training
     'joint': None
 })
-
+source = os.getcwd()
+train_images = os.path.join(source, '../data/my_vol/kitti360/train/images')
+train_info = os.path.join(source, '../data/my_vol/kitti360/train/annotation/instanceDict.json')
+valid_images = os.path.join(source, '../data/my_vol/kitti360/valid/images')
+valid_info = os.path.join(source, '../data/my_vol/kitti360/valid/annotation/instanceDict.json')
+#to train local dataset, please set the path to your dataset
 my_custom_dataset = dataset_base.copy({
     'name': 'My Custom Dataset',
+    
 
-    'train_images': '/home/phuc/Work/Cuda/image_processing/project_semantic/data/train/images',
-    'train_info': '/home/phuc/Work/Cuda/image_processing/project_semantic/data/train/annotation/instanceDict.json',
+    'train_images': train_images,
+    'train_info': train_info,
 
-    'valid_images': '/home/phuc/Work/Cuda/image_processing/project_semantic/data/valid/images',
-    'valid_info': '/home/phuc/Work/Cuda/image_processing/project_semantic/data/valid/annotation/instanceDict.json',
+    'valid_images': valid_images,
+    'valid_info': valid_info,
 
     'has_gt': True,
     'class_names': CUSTOM_CLASSES,

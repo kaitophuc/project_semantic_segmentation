@@ -170,9 +170,15 @@ def train(rank, args=args):
     w.add_text("argv", " ".join(sys.argv))
     logger.info("Args: {}".format(" ".join(sys.argv)))
     import git
-    with git.Repo(search_parent_directories=True) as repo:
+    '''with git.Repo(search_parent_directories=True) as repo:
+        w.add_text("git_hash", repo.head.object.hexsha)
+        logger.info("git hash: {}".format(repo.head.object.hexsha))'''
+    try:
+        repo = git.Repo(search_parent_directories=True)
         w.add_text("git_hash", repo.head.object.hexsha)
         logger.info("git hash: {}".format(repo.head.object.hexsha))
+    except git.exc.InvalidGitRepositoryError:
+        logger.warning("No Git repo found—skipping git_hash logging.")
 
     if args.num_gpus > 1:
         try:

@@ -6,9 +6,12 @@
 import os
 import subprocess
 import modal
+from pathlib import Path
 
-# Modal script mounting both code and data at their expected container paths
-defaulthome = "/home/phuc/Work/Cuda/image_processing/project_semantic"
+
+#Reference a pre-created volume holding your data
+vol_data = modal.Volume.from_name("my-volume")
+vol_model = modal.Volume.from_name("yolact-models")
 
 app = modal.App(
     name="yolact-edge",
@@ -38,25 +41,39 @@ app = modal.App(
         )
         .run_commands("python3 -m pip install --upgrade pip setuptools")
         # mount code into /root/project
-        .add_local_dir("yolact_edge", remote_path="/root/project")
+        .add_local_dir("yolact_edge", remote_path="/root/project_semantic_segmentation/yolact_edge")
         # mount data to the exact path train.py expects
-        .add_local_dir("data", remote_path=f"{defaulthome}/data")
-    )
+        #.add_local_dir("data", remote_path=f"{defaulthome}/data")
+    ),
+    volumes={"/root/project_semantic_segmentation/data": vol_data, 
+             "/root/project_semantic_segmentation/models": vol_model},
 )
 
 @app.function(gpu="H100", timeout=86400)
 def train_mode():
+    vol_data.reload()
+    vol_model.reload()
     # change to code dir for train.py imports
-    os.chdir("/root/project")
+    os.chdir("/root/project_semantic_segmentation/yolact_edge")
     # run training script; config inside train.py points at defaulthome/data
-    subprocess.run(["python3", "train.py"], check=True)
+    subprocess.run(["python3", 
+                    "train.py", 
+                    "--config=my_custom_dataset", 
+                    "--save_folder=/root/project_semantic_segmentation/models/", 
+                    "--epochs=100"], check=True)
+    vol_model.commit()
 
 @app.local_entrypoint()
 def main():
-    if not os.path.exists("./data"):
+    '''if not os.path.exists("/root/project_semantic_segmentation/data"):
         print("Data directory does not exist. Please create it and add the necessary files.")
         return
-
+    if not os.path.exists("/root/project_semantic_segmentation/models"):
+        print("Model directory does not exist. Please create it.")
+        return
+    if not os.path.exists("/root/project_semantic_segmentation/yolact_edge"):
+        print("YOLACT Edge directory does not exist. Please create it.")
+        return'''
     train_mode.remote()
 
 if __name__ == "__main__":

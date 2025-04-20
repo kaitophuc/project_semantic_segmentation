@@ -3,6 +3,6 @@
 /TensorRT-10.9.0.34
 /venv
 *.pyc
-*.pth
 *.npy
 *.pyx
+*.pth
