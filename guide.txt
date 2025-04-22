@@ -1,0 +1,8 @@
+Top command:
+1. To train: python train.py --config=my_custom_dataset
+2. To eval: python eval.py --trained_model=weights/my_custom_dataset_78_8927.pth --score_threshold=0.3 --top_k=100 --video_multiframe=2 --trt_batch_size 2 --video=/home/phuc/Work/Cuda/image_processing/project_depth_perception/output/video/007.mp4 --calib_images=/home/phuc/Work/Cuda/image_processing/project_semantic/yolact_edge/calib_images
+3. To clean data: python clean_data.py
+4. To make annotation: in kitti360Scripts/ annotation
+5. To run modal: modal run modal_script.py
+6. To download: 
+ modal volume get "yolact-models" "My Custom Dataset_99_99800.pth"  /home/phuc/Work/Cuda/image_processing/project_semantic_segmentation/yolact_edge/weights

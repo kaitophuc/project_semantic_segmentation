@@ -191,6 +191,10 @@ train_info = os.path.join(source, '../data/my_vol/kitti360/train/annotation/inst
 valid_images = os.path.join(source, '../data/my_vol/kitti360/valid/images')
 valid_info = os.path.join(source, '../data/my_vol/kitti360/valid/annotation/instanceDict.json')
 #to train local dataset, please set the path to your dataset
+#train_images = os.path.join(source, '../data/train/images')
+#train_info = os.path.join(source, '../data/train/annotation/instanceDict.json')
+#valid_images = os.path.join(source, '../data/valid/images')
+#valid_info = os.path.join(source, '../data/valid/annotation/instanceDict.json')
 my_custom_dataset = dataset_base.copy({
     'name': 'My Custom Dataset',
     

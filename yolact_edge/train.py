@@ -15,6 +15,7 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.optim.lr_scheduler import MultiStepLR, CosineAnnealingLR, ReduceLROnPlateau
 import torch.utils.data as data
 import numpy as np
 import argparse
@@ -79,6 +80,10 @@ parser.add_argument('--epochs', default=50, type=int,
                     help='Number of epochs to train for. If 0, train until max_iter is reached.')
 parser.add_argument('--early_stop', default=20, type=int,
                     help='Stop training if the validation loss does not improve for this many epochs.')
+parser.add_argument('--lr_patience', default=4, type=int,
+                    help='Number of epochs with no val‐loss improvement before lr drop')
+parser.add_argument('--lr_factor', default=0.1, type=float,
+                    help='Factor by which to multiply lr on plateau')
 
 parser.add_argument('--keep_latest', dest='keep_latest', action='store_true',
                     help='Only keep the latest checkpoint instead of each one.')
@@ -288,6 +293,14 @@ def train(rank, args=args):
     optimizer = optim.SGD(filter(lambda x: x.requires_grad, net.parameters()),
                           lr=args.lr, momentum=args.momentum,
                           weight_decay=args.decay)
+    
+    scheduler = ReduceLROnPlateau(
+        optimizer, 
+        mode='min', 
+        factor=args.lr_factor, 
+        patience=args.lr_patience, 
+        verbose=True
+        )
 
     # loss counters
     iteration = max(args.start_iter, 0)
@@ -333,6 +346,25 @@ def train(rank, args=args):
     loss_avgs  = { k: MovingAverage(100) for k in loss_types }
 
     def backward_and_log(prefix, net_outs, targets, masks, num_crowds, extra_loss=None):
+        # —— DEBUG START ——  
+    # Check your ground‐truth masks:
+        for i, m in enumerate(masks):
+            mn, mx = m.min(), m.max()
+            if mn < 0 or mx > 1:
+                print(f"[DEBUG] GT mask {i} has values outside [0, 1]: {mn:.3f} to {mx:.3f}")
+
+    # Check your raw mask predictions (logits or probabilities):
+    # YOLACT‑edge usually puts mask coeffs / proto_data in net_outs
+        if "mask_data" in net_outs:
+            md = net_outs["mask_data"]
+            mn, mx = md.min(), md.max()
+            if mn < 0 or mx > 1:
+                print(f"[DEBUG] Mask data has values outside [0, 1]: {mn:.3f} to {mx:.3f}")
+        if "proto_data" in net_outs:
+            pd = net_outs["proto_data"]
+            mn, mx = pd.min(), pd.max()
+            if mn < 0 or mx > 1:
+                print(f"[DEBUG] Proto data has values outside [0, 1]: {mn:.3f} to {mx:.3f}")
         optimizer.zero_grad()
 
         out = net_outs["pred_outs"]
@@ -632,6 +664,9 @@ time: {time}  data_time: {data_time}  lr: {lr}  {memory}\
                         else:
                             epochs_without_improvement += 1
                             logger.info("No improvement in validation loss for {} epochs.".format(epochs_without_improvement))
+                        
+                        scheduler.step(current_val_loss)
+                        
                         if epochs_without_improvement >= args.early_stop:
                             logger.info("Early stopping triggered after {} epochs without improvement.".format(epochs_without_improvement))
                             early_stop_triggered = True

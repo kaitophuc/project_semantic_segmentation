@@ -49,7 +49,7 @@ app = modal.App(
              "/root/project_semantic_segmentation/models": vol_model},
 )
 
-@app.function(gpu="H100", timeout=86400)
+@app.function(gpu="L40S", timeout=86400)
 def train_mode():
     vol_data.reload()
     vol_model.reload()
@@ -60,7 +60,11 @@ def train_mode():
                     "train.py", 
                     "--config=my_custom_dataset", 
                     "--save_folder=/root/project_semantic_segmentation/models/", 
-                    "--epochs=100"], check=True)
+                    "--epochs=100",
+                    "--resume=weights/my_custom_dataset_99_99800.pth",
+                    "--validation_epoch=1",
+                    "--lr_patience=2"
+                    ], check=True)
     vol_model.commit()
 
 @app.local_entrypoint()
